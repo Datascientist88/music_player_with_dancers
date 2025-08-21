@@ -1,70 +1,204 @@
-# Getting Started with Create React App
+# Ready Player Music — 3D Dancers + Glassmorphic Stereo Player (WebGL)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React (JS) app that blends a **Three.js** WebGL 3D stage (Michelle / ReadyPlayerMe dancers with animation retargeting) with a **glassmorphic stereo audio player**, a **card stack** (Swiper “Effect Cards”) and a **transparent playlist**.
+Optimized for desktop; on mobile the player remains, while the cards & list are hidden for a clean stage.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## ✨ Features
 
-### `npm start`
+* **WebGL only** (no WebGPU) with modern, neutral studio lighting.
+* **Dancer switcher**:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+  * **Michelle** (disco) – GLB with embedded animation.
+  * **ReadyPlayerMe** (tango) – animation retargeted from Mixamo FBX → RPM rig.
+* **Orbit controls with constraints** (no full flip; can’t dive under floor).
+* **Shiny off-blue glass tiles** + subtle glitter & grout lines.
+* **Glassmorphic stereo player**:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+  * Wave **visualizer** (magenta → cyan → yellow gradient).
+  * Prev / Play-Pause / Next, seek ±10s, volume with filled glass track.
+  * **Card stack** of covers (top-left under dancer selector), **transparent playlist** (right).
+* **Responsive**:
 
-### `npm test`
+  * Desktop/tablet: cards + playlist visible.
+  * **Mobile**: cards & playlist hidden, compact player only.
+* Assets loaded from `/public` (models) and `/src/assets` (music/images).
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 📁 Project Structure (key files)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+/public
+  └─ models/
+       Michelle.glb
+       readyplayer.me.glb
+       mixamo.fbx
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+/src
+  ├─ components/
+  │    App.jsx
+  │    Stage.jsx            ← 3D scene (WebGL, lighting, dancers)
+  │    AudioPlayer.jsx      ← glass player + visualizer + cards + playlist
+  ├─ assets/
+  │   ├─ music/             ← track1.mp3 ... track20.mp3 (you can add more)
+  │   └─ images/            ← cover1.jpg ... coverN.jpg
+  ├─ styles/
+  │   App.css               ← layout, top controls, fixed player positioning
+  │   AudioPlayer.css       ← player, cards, playlist styling (glassmorphic)
+  └─ main.jsx / index.js
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+> The code references `process.env.PUBLIC_URL || ""` for public paths, so it works in CRA and Vite (base `/`). Keep models under `/public/models`.
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## 🧰 Prerequisites
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+* **Node.js 18+** recommended
+* A modern desktop browser (Chrome/Edge/Firefox/Safari)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🚀 Setup & Run
 
-## Learn More
+1. **Install**
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+   ```bash
+   npm install
+   ```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. **Start dev server**
 
-### Code Splitting
+   * If the template is **Vite**:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+     ```bash
+     npm run dev
+     ```
+   * If the template is **Create React App**:
 
-### Analyzing the Bundle Size
+     ```bash
+     npm start
+     ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+3. Open the printed local URL (e.g., `http://localhost:5173` for Vite or `http://localhost:3000` for CRA).
 
-### Making a Progressive Web App
+4. **Build for production**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+   ```bash
+   npm run build
+   ```
 
-### Advanced Configuration
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🎵 Add/Replace Music & Covers
 
-### Deployment
+* Put audio files in: `src/assets/music/`
+* Put cover images in: `src/assets/images/`
+* Update/extend the `TRACKS` array in **`AudioPlayer.jsx`**:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+  ```js
+  { title: "Song", artist: "Artist", url: trackX_url, cover: coverX_img }
+  ```
+* Supported formats: `mp3` is typical; modern browsers also support `ogg`, `m4a` depending on codecs.
 
-### `npm run build` fails to minify
+> **Autoplay note**: Browsers require a user interaction before audio starts. Click Play once; then Next/Prev will work seamlessly.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+
+## 🕺 Add/Replace Dancers
+
+* Place GLB/FBX files in `/public/models/`
+* Update paths in **`Stage.jsx`** → `MODELS`:
+
+  ```js
+  michelle: { url: `${PUBLIC}/models/Michelle.glb`, ... }
+  tango:    { url: `${PUBLIC}/models/readyplayer.me.glb`, mixamoFBX: `${PUBLIC}/models/mixamo.fbx` }
+  ```
+* **Michelle** uses embedded animation; **ReadyPlayerMe** retargets a Mixamo FBX clip to RPM rig via `SkeletonUtils.retargetClip`.
+
+---
+
+## 🎚 Controls
+
+* **Top-left** segmented buttons: switch dancer (Michelle / ReadyPlayerMe).
+* **Orbit**: drag to rotate; wheel to zoom (limited); pan disabled.
+* **Player**:
+
+  * ⏮ Prev • ⏯ Play/Pause • ⏭ Next
+  * −10s / +10s seek
+  * Volume slider (glass filled track)
+* **Cards**: scroll/drag (Swiper Effect Cards). Clicking a card changes the track.
+* **Playlist**: click an item to play.
+
+---
+
+## 🛠 Troubleshooting
+
+**“The element has no supported sources.”**
+
+* The audio file path is wrong or not bundled. Ensure imports like:
+
+  ```js
+  import track1_url from "../assets/music/track1.mp3";
+  ```
+* If you added new files, restart the dev server so the bundler picks them up.
+
+**No sound until I click**
+
+* This is normal due to **autoplay policies**. Click the Play button once to unlock audio.
+
+**Models won’t load / CORS**
+
+* Keep models under `/public/models` to serve from same origin. Don’t load cross-origin without proper CORS headers.
+
+**Glowing/ghost feet**
+
+* Fixed in `Stage.jsx` by removing transmission/refraction on the floor and rendering floor/grid/glitter **below** the dancer.
+
+**Rotation looks weird**
+
+* OrbitControls are constrained (no underside/flip). Adjust `minPolarAngle`, `maxPolarAngle`, distances in `Stage.jsx` if needed.
+
+---
+
+## ⚙️ Implementation Notes
+
+* **WebGLRenderer** only (no WebGPU).
+* **Lighting**: ambient + hemisphere + key/fill + rim for natural studio feel (not green).
+* **Floor**: off-blue glossy physical material (no transmission to avoid ghosting).
+* **Visualizer**: Canvas2D with smooth multi-wave lines; colors: magenta → cyan → yellow.
+* **Responsive**:
+
+  * Desktop: Cards under selector (top-left), playlist on right, player bottom-left.
+  * Mobile ≤ 768px: **cards & playlist hidden**; compact player stays visible.
+
+---
+
+## 🙏 Credits
+
+* [Three.js](https://threejs.org/)
+* [Mixamo](https://www.mixamo.com/) (source animations)
+* [Ready Player Me](https://readyplayer.me/) (avatar rig/target)
+* [Swiper](https://swiperjs.com/) (Effect Cards)
+* Brick wall background pattern from \[transparenttextures.com] (please self-host in production).
+
+---
+
+## 📄 License
+
+This project is provided as-is for demonstration/educational purposes.
+You are responsible for the licenses of **music files**, **images**, and **3D models** you add.
+
+---
+
+## 💡 Tips
+
+* For production, **self-host textures** (don’t hotlink).
+* Compress GLBs with `gltfpack`/`draco` for faster loads.
+* Keep music filenames lowercase and without spaces to avoid path issues.
+* If you change the site base path, ensure `PUBLIC_URL` (CRA) or `base` (Vite) resolves so `/public/models/...` still loads.
+
+Enjoy the show! 🎶🕺💃
+

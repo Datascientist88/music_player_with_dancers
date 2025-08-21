@@ -7,10 +7,14 @@
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "ajv": "^8.17.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "swiper": "^11.2.10",
+    "three": "^0.179.1",
+    "web-vitals": "^2.1.4",
+    "zustand": "^5.0.8"
   },
   "scripts": {
     "start": "react-scripts start",

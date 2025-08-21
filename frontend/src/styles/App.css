@@ -1,0 +1,163 @@
+/* Root theme tokens */
+:root {
+  --bg: #0c0f14;
+  --glass: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --text: #e8edf3;
+  --shadow: 0 10px 30px rgba(0,0,0,0.28);
+  color-scheme: dark;
+
+  /* Shared width for the glass player AND the cards */
+  --player-w: 420px;
+}
+
+/* Base layout */
+html, body, #root, .app-root { height: 100%; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 3D canvas container */
+.stage-container {
+  position: absolute;
+  inset: 0;
+  /* Brick wall texture behind transparent WebGL renderer */
+  background-color: #3b2100;
+  background-image: url("https://www.transparenttextures.com/patterns/brick-wall.png");
+  background-repeat: repeat;
+  background-size: auto;
+  background-position: center center;
+}
+
+/* Top controls (dancer switcher, etc.) */
+.top-controls {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 1002;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none; /* let 3D orbit work except on controls */
+}
+.top-controls > * { pointer-events: auto; }
+
+.segmented {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.segmented button {
+  appearance: none;
+  border: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+}
+.segmented button.active {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+}
+
+/* Fixed stereo player wrapper (the card itself is styled in AudioPlayer.css) */
+.fixed-player-square {
+  position: fixed;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: calc(max(16px, env(safe-area-inset-bottom)));
+  z-index: 1001;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none; /* pass-through except for its children */
+}
+.fixed-player-square > * { pointer-events: auto; }
+
+/* --------- Responsive Tweaks --------- */
+
+/* Large tablets / small laptops */
+@media (max-width: 1200px) {
+  .top-controls { gap: 8px; }
+}
+
+/* Tablets */
+@media (max-width: 992px) {
+  .top-controls {
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+  }
+}
+
+/* Mobile: center the player; HIDE cards & playlist */
+@media (max-width: 768px) {
+  .top-controls { gap: 8px; justify-content: flex-start; }
+
+  /* Player width and centering */
+  .fixed-player-square {
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    width: min(96vw, 560px);
+    justify-content: center;
+  }
+
+  /* Cards & list: do not display on mobile */
+  .cards-below-selector,
+  .playlist-right {
+    display: none !important;
+  }
+
+  /* Keep touch comfort */
+  .segmented button { padding: 10px 14px; font-size: 0.95rem; }
+
+  /* Cards share player width on mobile (used if ever shown) */
+  :root { --player-w: min(74vw, 520px); }
+}
+
+/* Very small phones */
+@media (max-width: 480px) {
+  .segmented { padding: 5px; border-radius: 12px; }
+  .segmented button { padding: 8px 10px; font-size: 0.9rem; }
+
+  .fixed-player-square {
+    width: min(98vw, 520px);
+    bottom: calc(max(10px, env(safe-area-inset-bottom)));
+  }
+
+  :root { --player-w: min(92vw, 480px); }
+}
+
+/* High-DPI polish */
+@media (min-resolution: 2dppx) {
+  .segmented { border-color: rgba(255,255,255,0.24); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .top-controls,
+  .fixed-player-square {
+    transition: none !important;
+  }
+}
+
+/* Fallback if no backdrop-filter support */
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+  .segmented { background: rgba(20,20,20,0.5); }
+}
