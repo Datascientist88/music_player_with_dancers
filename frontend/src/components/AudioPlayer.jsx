@@ -75,26 +75,27 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.85);        // 0..1 UI state
+  const [volume, setVolume] = useState(0.85); // 0..1
   const [error, setError] = useState(null);
+  const [mobileOpen, setMobileOpen] = useState(false); // hamburger drawer
 
   const currentTrack = useMemo(() => TRACKS[currentIndex], [currentIndex]);
 
-  // WebAudio graph (built once)
+  // WebAudio graph
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
-  const gainRef = useRef(null);                      // <— iOS volume works via GainNode
+  const gainRef = useRef(null); // iOS volume
 
   // Visualizer
   const animRef = useRef(null);
   const ctxRef = useRef(null);
   const gradientRef = useRef(null);
 
-  // When true, the next src change will auto-play
+  // Autoplay flag for next src
   const pendingAutoplayRef = useRef(false);
 
-  // Prevent OrbitControls from stealing events
+  // Stop OrbitControls stealing events
   const stopOrbit = (e) => { e.stopPropagation(); };
   const uiStopperProps = {
     onPointerDown: stopOrbit,
@@ -127,7 +128,6 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     if (!canvas || !ctx || !grad || !analyser) return;
 
     const base = canvas.height / 2;
-    const maxAmp = canvas.height / 3.5;
     const waves = 10;
     let t = 0;
 
@@ -150,13 +150,11 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
         for (let i = 0; i < data.length; i++) {
           const v = data[i] / 128.0;
-          const mid = data.length / 2;
-          const dist = Math.abs(i - mid) / mid;
           const bell = 1 - Math.pow((2 * i) / data.length - 1, 2);
-          const amp = maxAmp * bell * (1 - dist);
+          const amp = (canvas.height / 3.5) * bell;
           const invert = j % 2 ? 1 : -1;
           const freq = invert * (0.05 + 0.25);
-          const y = base + Math.sin(i * freq + t + j) * amp * v;
+          const y = base + Math.sin(i * freq + t + j) * amp * (v / 2);
 
           if (i === 0) ctx.moveTo(x, y);
           else {
@@ -190,12 +188,10 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         }
         const audioCtx = audioCtxRef.current;
 
-        if (!sourceRef.current) {
-          sourceRef.current = audioCtx.createMediaElementSource(el);
-        }
+        if (!sourceRef.current) sourceRef.current = audioCtx.createMediaElementSource(el);
         if (!gainRef.current) {
           const gain = audioCtx.createGain();
-          gain.gain.value = volume;                 // initial volume
+          gain.gain.value = volume;
           gainRef.current = gain;
         }
         if (!analyserRef.current) {
@@ -204,12 +200,10 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
           analyserRef.current = analyser;
         }
 
-        // Connect: el -> source -> gain -> analyser -> destination
-        // Guard against duplicate connections
+        // Connect graph (guard against duplicate connections)
         try { sourceRef.current.disconnect(); } catch {}
         try { gainRef.current.disconnect(); } catch {}
         try { analyserRef.current.disconnect(); } catch {}
-
         sourceRef.current.connect(gainRef.current);
         gainRef.current.connect(analyserRef.current);
         analyserRef.current.connect(audioCtx.destination);
@@ -232,7 +226,6 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
     el.addEventListener("error", onErr);
     el.addEventListener("ended", onEnded);
-
     return () => {
       el.removeEventListener("error", onErr);
       el.removeEventListener("ended", onEnded);
@@ -241,7 +234,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ===== Change track: swap src and force autoplay (mobile-safe) ===== */
+  /* ===== Change track: swap src + autoplay (mobile-safe) ===== */
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -263,14 +256,11 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         startVisualizer();
         pendingAutoplayRef.current = false;
         return true;
-      } catch {
-        return false;
-      }
+      } catch { return false; }
     };
 
     el.src = currentTrack.url;
     el.load();
-
     tryImmediatePlay();
 
     const doAutoplay = async () => {
@@ -305,13 +295,11 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     };
   }, [currentIndex, currentTrack]);
 
-  /* ===== Volume control (iOS-friendly) =====
-     Use GainNode for actual volume; also set HTML volume for non-iOS browsers. */
+  /* ===== Volume (iOS-friendly via GainNode) ===== */
   useEffect(() => {
     const el = audioRef.current;
-    if (el) el.volume = volume; // has no effect on iOS, fine elsewhere
+    if (el) el.volume = volume; // ignored on iOS; fine elsewhere
     if (gainRef.current) {
-      // smooth ramp to avoid clicks
       const now = audioCtxRef.current?.currentTime ?? 0;
       try {
         const g = gainRef.current.gain;
@@ -323,7 +311,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     }
   }, [volume]);
 
-  /* Keep active playlist item visible */
+  /* Keep active playlist item visible on desktop panel */
   useEffect(() => {
     if (playlistRef.current) {
       const active = playlistRef.current.querySelector(".active-playlist-item");
@@ -355,7 +343,6 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     }
   };
 
-  // Always request autoplay on index change
   const playIndex = (i) => {
     pendingAutoplayRef.current = true;
     setCurrentIndex(((i % TRACKS.length) + TRACKS.length) % TRACKS.length);
@@ -371,7 +358,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
   return (
     <>
-      {/* Mini player (small on mobile) */}
+      {/* Mini player */}
       <div className="audio-player-square stereo" {...uiStopperProps} style={{ touchAction: "manipulation" }}>
         <div className="ap-header">
           <div className="ap-title">
@@ -411,11 +398,10 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
           <button className="ap-btn small" onClick={() => seek(10)} title="Forward 10s">+10s</button>
         </div>
 
-        {/* playsInline is important for iOS; preload=auto helps quick swaps */}
         <audio ref={audioRef} preload="auto" playsInline />
       </div>
 
-      {/* Cards — swipe to change & autoplay */}
+      {/* Cards — desktop/tablet (hidden on mobile via CSS) */}
       <section className="cards-below-selector left" {...uiStopperProps} style={{ touchAction: "pan-y" }}>
         <div className="cards-wrap">
           <Swiper
@@ -444,7 +430,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         </div>
       </section>
 
-      {/* Right-side glass playlist (scroll & click even while playing) */}
+      {/* Desktop glass playlist (hidden on mobile) */}
       <aside
         className="playlist-right"
         {...uiStopperProps}
@@ -466,7 +452,42 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
           ))}
         </div>
       </aside>
+
+      {/* MOBILE: top-right hamburger + horizontal glass drawer */}
+      <button
+        className="mobile-pl-btn"
+        aria-label="Open playlist"
+        onClick={() => setMobileOpen((o) => !o)}
+        {...uiStopperProps}
+      >
+        ☰
+      </button>
+
+      <div
+        className={`mobile-pl-drawer ${mobileOpen ? "open" : ""}`}
+        {...uiStopperProps}
+        style={{ touchAction: "pan-x" }}
+      >
+        <div className="mobile-pl-header">
+          <span>Playlist</span>
+          <button className="mobile-pl-close" onClick={() => setMobileOpen(false)}>✕</button>
+        </div>
+
+        <div className="mobile-pl-row" {...uiStopperProps}>
+          {TRACKS.map((t, idx) => (
+            <button
+              key={idx}
+              className={`mobile-track-card ${idx === currentIndex ? "active" : ""}`}
+              onClick={() => { playIndex(idx); setMobileOpen(false); }}  // auto-close on pick
+              title={`${t.artist} — ${t.title}`}
+            >
+              <img src={t.cover} alt={t.title} />
+              <span className="mtc-artist">{t.artist}</span>
+              <span className="mtc-title">{t.title}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </>
   );
 }
-

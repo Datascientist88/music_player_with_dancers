@@ -60,6 +60,7 @@ body {
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  max-width: 100%;
 }
 .segmented button {
   appearance: none;
@@ -70,6 +71,7 @@ body {
   background: transparent;
   cursor: pointer;
   font-weight: 600;
+  white-space: nowrap;
 }
 .segmented button.active {
   background: rgba(255,255,255,0.12);
@@ -105,36 +107,72 @@ body {
   }
 }
 
-/* Mobile: center the player; HIDE cards & playlist */
+/* Mobile: center the player without transforms; compact selector; keep top-right free */
 @media (max-width: 768px) {
-  .top-controls { gap: 8px; justify-content: flex-start; }
+  .top-controls {
+    gap: 8px;
+    justify-content: flex-start;
+    /* Reserve space at top-right for the hamburger menu */
+    padding-right: 84px;
+  }
 
-  /* Player width and centering */
+  .segmented {
+    gap: 4px;
+    padding: 5px 6px;
+    border-radius: 12px;
+    /* Prevent overlap with hamburger: keep within viewport minus right buffer */
+    max-width: calc(100vw - 96px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .segmented::-webkit-scrollbar { height: 0; }
+  .segmented button {
+    padding: 8px 10px;
+    font-size: 0.92rem;
+  }
+
+  /* Center the fixed player WITHOUT transform (avoids Safari fixed-inside-transform bug) */
   .fixed-player-square {
-    left: 50%;
-    transform: translateX(-50%);
-    right: auto;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    transform: none !important;     /* critical for iOS */
     width: min(96vw, 560px);
     justify-content: center;
   }
 
-  /* Cards & list: do not display on mobile */
+  /* Cards & list: desktop-only UI (hidden on mobile) */
   .cards-below-selector,
   .playlist-right {
     display: none !important;
   }
 
-  /* Keep touch comfort */
-  .segmented button { padding: 10px 14px; font-size: 0.95rem; }
-
-  /* Cards share player width on mobile (used if ever shown) */
+  /* Cards share player width on mobile (if ever shown) */
   :root { --player-w: min(74vw, 520px); }
+
+  /* Ensure the hamburger (defined in AudioPlayer.css) is truly top-right on mobile */
+  .mobile-pl-btn{
+    position: fixed !important;
+    top: max(10px, env(safe-area-inset-top)) !important;
+    right: max(12px, env(safe-area-inset-right)) !important;
+    z-index: 3000 !important;       /* above everything */
+  }
+  .mobile-pl-drawer{
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top) + 58px) !important;
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    z-index: 2999 !important;
+  }
 }
 
 /* Very small phones */
 @media (max-width: 480px) {
-  .segmented { padding: 5px; border-radius: 12px; }
-  .segmented button { padding: 8px 10px; font-size: 0.9rem; }
+  .segmented { padding: 4px 5px; border-radius: 11px; }
+  .segmented button { padding: 7px 9px; font-size: 0.88rem; }
 
   .fixed-player-square {
     width: min(98vw, 520px);

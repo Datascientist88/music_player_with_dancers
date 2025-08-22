@@ -28,7 +28,7 @@ export default function App() {
             onClick={() => setDancer("tango")}
             title="Ready Player Me — Tango"
           >
-            🕺 ReadyPlayerMe (Tango)
+            🕺 Jack (Tango)
           </button>
         </div>
       </div>
