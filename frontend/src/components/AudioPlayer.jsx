@@ -75,7 +75,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.85);
+  const [volume, setVolume] = useState(0.85);        // 0..1 UI state
   const [error, setError] = useState(null);
 
   const currentTrack = useMemo(() => TRACKS[currentIndex], [currentIndex]);
@@ -84,6 +84,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
+  const gainRef = useRef(null);                      // <— iOS volume works via GainNode
 
   // Visualizer
   const animRef = useRef(null);
@@ -93,7 +94,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
   // When true, the next src change will auto-play
   const pendingAutoplayRef = useRef(false);
 
-  // --- Keep UI events from reaching OrbitControls (canvas) ---
+  // Prevent OrbitControls from stealing events
   const stopOrbit = (e) => { e.stopPropagation(); };
   const uiStopperProps = {
     onPointerDown: stopOrbit,
@@ -192,15 +193,28 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         if (!sourceRef.current) {
           sourceRef.current = audioCtx.createMediaElementSource(el);
         }
+        if (!gainRef.current) {
+          const gain = audioCtx.createGain();
+          gain.gain.value = volume;                 // initial volume
+          gainRef.current = gain;
+        }
         if (!analyserRef.current) {
           const analyser = audioCtx.createAnalyser();
           analyser.fftSize = 256;
-          sourceRef.current.connect(analyser);
-          analyser.connect(audioCtx.destination);
           analyserRef.current = analyser;
-          onAnalyserReady?.(analyser);
         }
 
+        // Connect: el -> source -> gain -> analyser -> destination
+        // Guard against duplicate connections
+        try { sourceRef.current.disconnect(); } catch {}
+        try { gainRef.current.disconnect(); } catch {}
+        try { analyserRef.current.disconnect(); } catch {}
+
+        sourceRef.current.connect(gainRef.current);
+        gainRef.current.connect(analyserRef.current);
+        analyserRef.current.connect(audioCtx.destination);
+
+        onAnalyserReady?.(analyserRef.current);
         initCanvas();
       } catch (e) {
         console.error(e);
@@ -212,7 +226,6 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
     const onErr = () => setError("Audio source not supported or not found.");
     const onEnded = () => {
-      // Auto-advance and mark to autoplay the next track
       pendingAutoplayRef.current = true;
       setCurrentIndex((i) => (i + 1) % TRACKS.length);
     };
@@ -234,28 +247,30 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     if (!el) return;
     setError(null);
 
-    // attempt immediate play right after src swap (still within user gesture if any)
+    const resumeCtx = async () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      try { await audioCtxRef.current.resume(); } catch {}
+    };
+
     const tryImmediatePlay = async () => {
       if (!pendingAutoplayRef.current) return false;
       try {
         await resumeCtx();
-        // set src and try to play immediately
         await el.play();
         setIsPlaying(true);
         startVisualizer();
         pendingAutoplayRef.current = false;
         return true;
       } catch {
-        // will retry on ready events
         return false;
       }
     };
 
-    // set new source and call load() to prompt readyState updates consistently on iOS
     el.src = currentTrack.url;
     el.load();
 
-    // best-effort immediate start
     tryImmediatePlay();
 
     const doAutoplay = async () => {
@@ -267,12 +282,10 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         startVisualizer();
         pendingAutoplayRef.current = false;
       } catch {
-        // If still blocked, leave it paused and show a subtle hint
         setError("Tap play to continue (mobile autoplay).");
       }
     };
 
-    // multiple fallbacks—different mobiles fire different ones reliably
     const onLoadedData = () => doAutoplay();
     const onCanPlay = () => doAutoplay();
     const onCanPlayThrough = () => doAutoplay();
@@ -281,7 +294,6 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     el.addEventListener("canplay", onCanPlay, { once: true });
     el.addEventListener("canplaythrough", onCanPlayThrough, { once: true });
 
-    // keep swiper in sync
     if (swiperRef.current?.swiper) {
       swiperRef.current.swiper.slideTo(currentIndex);
     }
@@ -293,9 +305,22 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     };
   }, [currentIndex, currentTrack]);
 
-  /* Volume updates never touch the src or pause playback */
+  /* ===== Volume control (iOS-friendly) =====
+     Use GainNode for actual volume; also set HTML volume for non-iOS browsers. */
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
+    const el = audioRef.current;
+    if (el) el.volume = volume; // has no effect on iOS, fine elsewhere
+    if (gainRef.current) {
+      // smooth ramp to avoid clicks
+      const now = audioCtxRef.current?.currentTime ?? 0;
+      try {
+        const g = gainRef.current.gain;
+        g.cancelScheduledValues(now);
+        g.setTargetAtTime(Math.max(0, Math.min(1, volume)), now, 0.005);
+      } catch {
+        gainRef.current.gain.value = Math.max(0, Math.min(1, volume));
+      }
+    }
   }, [volume]);
 
   /* Keep active playlist item visible */
@@ -330,9 +355,9 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     }
   };
 
-  // Centralized change helpers — always request autoplay
+  // Always request autoplay on index change
   const playIndex = (i) => {
-    pendingAutoplayRef.current = true;       // guarantees autoplay for new index
+    pendingAutoplayRef.current = true;
     setCurrentIndex(((i % TRACKS.length) + TRACKS.length) % TRACKS.length);
   };
   const handlePrev = () => playIndex(currentIndex - 1);
@@ -401,7 +426,6 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
             modules={[EffectCards, Mousewheel, Pagination]}
             initialSlide={0}
             mousewheel={{ invert: false }}
-            // Swiping triggers autoplay for the selected track
             onSlideChange={(sw) => playIndex(sw.realIndex)}
             cardsEffect={{ perSlideOffset: 8, perSlideRotate: 3 }}
           >
@@ -445,3 +469,4 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     </>
   );
 }
+
