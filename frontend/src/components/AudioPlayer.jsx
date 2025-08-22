@@ -1,20 +1,22 @@
+// src/components/AudioStereoPlayer.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../styles/AudioPlayer.css";
+
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCards, Mousewheel, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-cards";
 
-/* tracks & covers ... (keep exactly as you have) */
-import track1_url from "../assets/music/track1.mp3";
-import track2_url from "../assets/music/track2.mp3";
-import track3_url from "../assets/music/track3.mp3";
-import track4_url from "../assets/music/track4.mp3";
-import track5_url from "../assets/music/track5.mp3";
-import track6_url from "../assets/music/track6.mp3";
-import track7_url from "../assets/music/track7.mp3";
-import track8_url from "../assets/music/track8.mp3";
-import track9_url from "../assets/music/track9.mp3";
+/* ======== Tracks & Covers (your imports) ======== */
+import track1_url  from "../assets/music/track1.mp3";
+import track2_url  from "../assets/music/track2.mp3";
+import track3_url  from "../assets/music/track3.mp3";
+import track4_url  from "../assets/music/track4.mp3";
+import track5_url  from "../assets/music/track5.mp3";
+import track6_url  from "../assets/music/track6.mp3";
+import track7_url  from "../assets/music/track7.mp3";
+import track8_url  from "../assets/music/track8.mp3";
+import track9_url  from "../assets/music/track9.mp3";
 import track10_url from "../assets/music/track10.mp3";
 import track11_url from "../assets/music/track11.mp3";
 import track12_url from "../assets/music/track12.mp3";
@@ -26,15 +28,15 @@ import track18_url from "../assets/music/track18.mp3";
 import track19_url from "../assets/music/track19.mp3";
 import track20_url from "../assets/music/track20.mp3";
 
-import cover1_img from "../assets/images/cover1.jpg";
-import cover2_img from "../assets/images/cover2.jpg";
-import cover3_img from "../assets/images/cover3.jpg";
-import cover4_img from "../assets/images/cover4.jpg";
-import cover5_img from "../assets/images/cover5.jpg";
-import cover6_img from "../assets/images/cover6.jpg";
-import cover7_img from "../assets/images/cover7.jpg";
-import cover8_img from "../assets/images/cover8.jpg";
-import cover9_img from "../assets/images/cover9.jpg";
+import cover1_img  from "../assets/images/cover1.jpg";
+import cover2_img  from "../assets/images/cover2.jpg";
+import cover3_img  from "../assets/images/cover3.jpg";
+import cover4_img  from "../assets/images/cover4.jpg";
+import cover5_img  from "../assets/images/cover5.jpg";
+import cover6_img  from "../assets/images/cover6.jpg";
+import cover7_img  from "../assets/images/cover7.jpg";
+import cover8_img  from "../assets/images/cover8.jpg";
+import cover9_img  from "../assets/images/cover9.jpg";
 import cover10_img from "../assets/images/cover10.jpg";
 import cover11_img from "../assets/images/cover11.jpg";
 import cover12_img from "../assets/images/cover12.jpg";
@@ -44,25 +46,25 @@ import cover15_img from "../assets/images/cover15.jpg";
 import cover18_img from "../assets/images/cover18.jpg";
 
 const TRACKS = [
-  { title: "كتير بنعشق", artist: "شرين عبد الوهاب", url: track1_url, cover: cover1_img },
-  { title: "مشاعر", artist: "شرين عبد الوهاب", url: track2_url, cover: cover2_img },
-  { title: "مين دا اللي نسيك", artist: "نانسي عجرم", url: track3_url, cover: cover3_img },
-  { title: "بحبك وحشتني", artist: "حسين الجسمي", url: track4_url, cover: cover4_img },
-  { title: "غريبة الناس", artist: "وائل جسار", url: track18_url, cover: cover18_img },
-  { title: "بيت حبيبي", artist: "يارا", url: track5_url, cover: cover5_img },
-  { title: "ساعات", artist: "أليسا", url: track6_url, cover: cover6_img },
-  { title: "بحك مش حقول تاني", artist: "وائل جسار", url: track13_url, cover: cover13_img },
-  { title: "بامارة مين", artist: "احمد فريد", url: track7_url, cover: cover7_img },
-  { title: "كلمات", artist: "ماجدة الرومي", url: track8_url, cover: cover8_img },
-  { title: "بكلمة منك", artist: "شرين عبد الوهاب", url: track20_url, cover: cover2_img },
-  { title: "خليني ذكرى", artist: "وائل جسار", url: track9_url, cover: cover9_img },
-  { title: "لو كان بخاطري", artist: "امال ماهر | راشد الماجد", url: track10_url, cover: cover10_img },
-  { title: "خذني معك", artist: "فضل شاكر", url: track11_url, cover: cover11_img },
-  { title: "موجوع", artist: "وائل جسار", url: track12_url, cover: cover12_img },
-  { title: "معقول", artist: "فضل شاكر", url: track14_url, cover: cover14_img },
-  { title: "على بالي", artist: "شرين عبد الوهاب", url: track15_url, cover: cover15_img },
-  { title: "حبيبي بالبونت العريض", artist: "حسين الجسمي", url: track17_url, cover: cover4_img },
-  { title: "بتمون", artist: "أليسا", url: track19_url, cover: cover6_img },
+  { title: "كتير بنعشق",          artist: "شرين عبد الوهاب",         url: track1_url,  cover: cover1_img  },
+  { title: "مشاعر",                artist: "شرين عبد الوهاب",         url: track2_url,  cover: cover2_img  },
+  { title: "مين دا اللي نسيك",    artist: "نانسي عجرم",               url: track3_url,  cover: cover3_img  },
+  { title: "بحبك وحشتني",          artist: "حسين الجسمي",               url: track4_url,  cover: cover4_img  },
+  { title: "غريبة الناس",          artist: "وائل جسار",                 url: track18_url, cover: cover18_img },
+  { title: "بيت حبيبي",            artist: "يارا",                      url: track5_url,  cover: cover5_img  },
+  { title: "ساعات",                artist: "أليسا",                     url: track6_url,  cover: cover6_img  },
+  { title: "بحك مش حقول تاني",     artist: "وائل جسار",                 url: track13_url, cover: cover13_img },
+  { title: "بامارة مين",           artist: "احمد فريد",                 url: track7_url,  cover: cover7_img  },
+  { title: "كلمات",                artist: "ماجدة الرومي",              url: track8_url,  cover: cover8_img  },
+  { title: "بكلمة منك",            artist: "شرين عبد الوهاب",         url: track20_url, cover: cover2_img  },
+  { title: "خليني ذكرى",           artist: "وائل جسار",                 url: track9_url,  cover: cover9_img  },
+  { title: "لو كان بخاطري",        artist: "امال ماهر | راشد الماجد",  url: track10_url, cover: cover10_img },
+  { title: "خذني معك",             artist: "فضل شاكر",                  url: track11_url, cover: cover11_img },
+  { title: "موجوع",                artist: "وائل جسار",                 url: track12_url, cover: cover12_img },
+  { title: "معقول",                artist: "فضل شاكر",                  url: track14_url, cover: cover14_img },
+  { title: "على بالي",             artist: "شرين عبد الوهاب",         url: track15_url, cover: cover15_img },
+  { title: "حبيبي بالبونت العريض", artist: "حسين الجسمي",               url: track17_url, cover: cover4_img  },
+  { title: "بتمون",                artist: "أليسا",                     url: track19_url, cover: cover6_img  },
 ];
 
 export default function AudioStereoPlayer({ onAnalyserReady }) {
@@ -78,15 +80,31 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
   const currentTrack = useMemo(() => TRACKS[currentIndex], [currentIndex]);
 
-  // WebAudio
+  // WebAudio graph (built once)
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
+
+  // Visualizer
   const animRef = useRef(null);
   const ctxRef = useRef(null);
   const gradientRef = useRef(null);
 
-  /* Visualizer init */
+  // When true, the next src change will auto-play
+  const pendingAutoplayRef = useRef(false);
+
+  // --- helpers to keep UI events from reaching OrbitControls (canvas) ---
+  const stopOrbit = (e) => { e.stopPropagation(); };
+  const uiStopperProps = {
+    onPointerDown: stopOrbit,
+    onPointerUp: stopOrbit,
+    onPointerMove: stopOrbit,
+    onWheel: stopOrbit,
+    onTouchStart: stopOrbit,
+    onTouchMove: stopOrbit,
+  };
+
+  /* ===== Visualizer ===== */
   const initCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -159,7 +177,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     animRef.current = requestAnimationFrame(animate);
   };
 
-  /* Build audio graph once (prevents MediaElementSource errors) */
+  /* ===== Build audio graph once ===== */
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -193,7 +211,11 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     ensureGraph();
 
     const onErr = () => setError("Audio source not supported or not found.");
-    const onEnded = () => handleNext();
+    const onEnded = () => {
+      // Auto-advance and mark to autoplay the next track
+      pendingAutoplayRef.current = true;
+      setCurrentIndex((i) => (i + 1) % TRACKS.length);
+    };
 
     el.addEventListener("error", onErr);
     el.addEventListener("ended", onEnded);
@@ -206,16 +228,41 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* 🔧 Update src only when the track changes (NOT when volume changes) */
+  /* ===== Change track: set src and (if flagged) auto-play when ready ===== */
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
     setError(null);
+
+    const doAutoplay = async () => {
+      if (!pendingAutoplayRef.current) return;
+      pendingAutoplayRef.current = false;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      await audioCtxRef.current.resume();
+      try {
+        await el.play();
+        setIsPlaying(true);
+        startVisualizer();
+      } catch (e) {
+        setError("User gesture required to play.");
+      }
+    };
+
     el.src = currentTrack.url;
-    if (swiperRef.current?.swiper) swiperRef.current.swiper.slideTo(currentIndex);
+
+    const onCanPlay = () => doAutoplay();
+    el.addEventListener("canplay", onCanPlay, { once: true });
+
+    if (swiperRef.current?.swiper) {
+      swiperRef.current.swiper.slideTo(currentIndex);
+    }
+
+    return () => el.removeEventListener("canplay", onCanPlay);
   }, [currentIndex, currentTrack]);
 
-  /* 🔧 Apply volume separately so it doesn't interrupt playback */
+  /* Volume updates never touch the src or pause playback */
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
@@ -252,23 +299,13 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     }
   };
 
-  const handlePrev = async () => {
-    setCurrentIndex((i) => (i - 1 + TRACKS.length) % TRACKS.length);
-    await afterIndexChange(true);
+  // Centralized change helpers — always request autoplay
+  const playIndex = (i) => {
+    pendingAutoplayRef.current = true;
+    setCurrentIndex(((i % TRACKS.length) + TRACKS.length) % TRACKS.length);
   };
-  const handleNext = async () => {
-    setCurrentIndex((i) => (i + 1) % TRACKS.length);
-    await afterIndexChange(true);
-  };
-  const afterIndexChange = async (autoplay = false) => {
-    const el = audioRef.current;
-    if (!el) return;
-    await resumeCtx();
-    if (autoplay) {
-      el.play().then(() => { setIsPlaying(true); startVisualizer(); })
-               .catch(() => setError("User gesture required to play."));
-    }
-  };
+  const handlePrev = () => playIndex(currentIndex - 1);
+  const handleNext = () => playIndex(currentIndex + 1);
 
   const seek = (sec) => {
     const el = audioRef.current;
@@ -276,12 +313,10 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     el.currentTime = Math.max(0, el.currentTime + sec);
   };
 
-  const onVolumeChange = (v) => setVolume(v);
-
   return (
     <>
       {/* Mini player (small on mobile) */}
-      <div className="audio-player-square stereo">
+      <div className="audio-player-square stereo" {...uiStopperProps} style={{ touchAction: "manipulation" }}>
         <div className="ap-header">
           <div className="ap-title">
             <div className="ap-now">Now Playing</div>
@@ -306,7 +341,6 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
         <div className="ap-seek-row">
           <button className="ap-btn small" onClick={() => seek(-10)} title="Rewind 10s">−10s</button>
-          {/* CSS variable --vol drives the filled-track styling */}
           <input
             className="ap-volume"
             type="range"
@@ -314,7 +348,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
             max={1}
             step={0.01}
             value={volume}
-            onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
             style={{ "--vol": volume }}
             title="Volume"
           />
@@ -324,8 +358,8 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         <audio ref={audioRef} preload="metadata" />
       </div>
 
-      {/* Cards: TOP-LEFT just under dancer selector */}
-      <section className="cards-below-selector left">
+      {/* Cards — swipe to change & autoplay */}
+      <section className="cards-below-selector left" {...uiStopperProps} style={{ touchAction: "pan-y" }}>
         <div className="cards-wrap">
           <Swiper
             ref={swiperRef}
@@ -335,13 +369,14 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
             modules={[EffectCards, Mousewheel, Pagination]}
             initialSlide={0}
             mousewheel={{ invert: false }}
-            onSlideChange={(sw) => setCurrentIndex(sw.realIndex)}
+            // Swiping triggers autoplay for the selected track
+            onSlideChange={(sw) => playIndex(sw.realIndex)}
             cardsEffect={{ perSlideOffset: 8, perSlideRotate: 3 }}
           >
             {TRACKS.map((t, idx) => (
               <SwiperSlide key={idx}>
-                <div className="card-slide">
-                  <img src={t.cover} alt={t.title} />
+                <div className="card-slide" draggable="false">
+                  <img src={t.cover} alt={t.title} draggable="false" />
                   <div className="card-meta">
                     <div className="artist">{t.artist}</div>
                     <div className="title">{t.title}</div>
@@ -353,16 +388,20 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         </div>
       </section>
 
-      {/* Right-side glass playlist (wider, near top, fills height) */}
-      <aside className="playlist-right">
-        <div className="playlist-scroller" ref={playlistRef}>
+      {/* Right-side glass playlist (scroll & click even while playing) */}
+      <aside
+        className="playlist-right"
+        {...uiStopperProps}
+        style={{ zIndex: 1005, touchAction: "pan-y" }}
+      >
+        <div className="playlist-scroller" ref={playlistRef} {...uiStopperProps}>
           {TRACKS.map((t, idx) => (
             <div
               key={idx}
               className={`playlist-item ${idx === currentIndex ? "active-playlist-item" : ""}`}
-              onClick={() => { setCurrentIndex(idx); afterIndexChange(true); }}
+              onClick={() => playIndex(idx)}
             >
-              <img src={t.cover} alt={t.title} />
+              <img src={t.cover} alt={t.title} draggable="false" />
               <div className="song">
                 <p className="artist">{t.artist}</p>
                 <p className="title">{t.title}</p>
