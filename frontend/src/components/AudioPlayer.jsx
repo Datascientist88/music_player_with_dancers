@@ -93,7 +93,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
   // When true, the next src change will auto-play
   const pendingAutoplayRef = useRef(false);
 
-  // --- helpers to keep UI events from reaching OrbitControls (canvas) ---
+  // --- Keep UI events from reaching OrbitControls (canvas) ---
   const stopOrbit = (e) => { e.stopPropagation(); };
   const uiStopperProps = {
     onPointerDown: stopOrbit,
@@ -228,38 +228,69 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ===== Change track: set src and (if flagged) auto-play when ready ===== */
+  /* ===== Change track: swap src and force autoplay (mobile-safe) ===== */
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
     setError(null);
 
-    const doAutoplay = async () => {
-      if (!pendingAutoplayRef.current) return;
-      pendingAutoplayRef.current = false;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      await audioCtxRef.current.resume();
+    // attempt immediate play right after src swap (still within user gesture if any)
+    const tryImmediatePlay = async () => {
+      if (!pendingAutoplayRef.current) return false;
       try {
+        await resumeCtx();
+        // set src and try to play immediately
         await el.play();
         setIsPlaying(true);
         startVisualizer();
-      } catch (e) {
-        setError("User gesture required to play.");
+        pendingAutoplayRef.current = false;
+        return true;
+      } catch {
+        // will retry on ready events
+        return false;
       }
     };
 
+    // set new source and call load() to prompt readyState updates consistently on iOS
     el.src = currentTrack.url;
+    el.load();
 
+    // best-effort immediate start
+    tryImmediatePlay();
+
+    const doAutoplay = async () => {
+      if (!pendingAutoplayRef.current) return;
+      try {
+        await resumeCtx();
+        await el.play();
+        setIsPlaying(true);
+        startVisualizer();
+        pendingAutoplayRef.current = false;
+      } catch {
+        // If still blocked, leave it paused and show a subtle hint
+        setError("Tap play to continue (mobile autoplay).");
+      }
+    };
+
+    // multiple fallbacks—different mobiles fire different ones reliably
+    const onLoadedData = () => doAutoplay();
     const onCanPlay = () => doAutoplay();
-    el.addEventListener("canplay", onCanPlay, { once: true });
+    const onCanPlayThrough = () => doAutoplay();
 
+    el.addEventListener("loadeddata", onLoadedData, { once: true });
+    el.addEventListener("canplay", onCanPlay, { once: true });
+    el.addEventListener("canplaythrough", onCanPlayThrough, { once: true });
+
+    // keep swiper in sync
     if (swiperRef.current?.swiper) {
       swiperRef.current.swiper.slideTo(currentIndex);
     }
 
-    return () => el.removeEventListener("canplay", onCanPlay);
+    return () => {
+      el.removeEventListener("loadeddata", onLoadedData);
+      el.removeEventListener("canplay", onCanPlay);
+      el.removeEventListener("canplaythrough", onCanPlayThrough);
+    };
   }, [currentIndex, currentTrack]);
 
   /* Volume updates never touch the src or pause playback */
@@ -284,7 +315,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
-    await audioCtxRef.current.resume();
+    try { await audioCtxRef.current.resume(); } catch {}
   };
 
   const handlePlayPause = async () => {
@@ -293,7 +324,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     await resumeCtx();
     if (el.paused) {
       el.play().then(() => { setIsPlaying(true); startVisualizer(); })
-               .catch(() => setError("Playback blocked — user gesture required."));
+               .catch(() => setError("Playback blocked — tap to allow audio."));
     } else {
       el.pause(); setIsPlaying(false);
     }
@@ -301,7 +332,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
   // Centralized change helpers — always request autoplay
   const playIndex = (i) => {
-    pendingAutoplayRef.current = true;
+    pendingAutoplayRef.current = true;       // guarantees autoplay for new index
     setCurrentIndex(((i % TRACKS.length) + TRACKS.length) % TRACKS.length);
   };
   const handlePrev = () => playIndex(currentIndex - 1);
@@ -355,7 +386,8 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
           <button className="ap-btn small" onClick={() => seek(10)} title="Forward 10s">+10s</button>
         </div>
 
-        <audio ref={audioRef} preload="metadata" />
+        {/* playsInline is important for iOS; preload=auto helps quick swaps */}
+        <audio ref={audioRef} preload="auto" playsInline />
       </div>
 
       {/* Cards — swipe to change & autoplay */}
