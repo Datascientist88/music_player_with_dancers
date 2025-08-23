@@ -1,5 +1,5 @@
 // src/components/AudioStereoPlayer.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/AudioPlayer.css";
 
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -24,9 +24,9 @@ import track13_url from "../assets/music/track13.mp3";
 import track14_url from "../assets/music/track14.mp3";
 import track15_url from "../assets/music/track15.mp3";
 import track17_url from "../assets/music/track17.mp3";
-import track18_url from "../assets/music/track18.mp3";
-import track19_url from "../assets/music/track19.mp3";
-import track20_url from "../assets/music/track20.mp3";
+import track18_url  from "../assets/music/track18.mp3";
+import track19_url  from "../assets/music/track19.mp3";
+import track20_url  from "../assets/music/track20.mp3";
 
 import cover1_img  from "../assets/images/cover1.jpg";
 import cover2_img  from "../assets/images/cover2.jpg";
@@ -56,18 +56,108 @@ const TRACKS = [
   { title: "بحك مش حقول تاني",     artist: "وائل جسار",                 url: track13_url, cover: cover13_img },
   { title: "بامارة مين",           artist: "احمد فريد",                 url: track7_url,  cover: cover7_img  },
   { title: "كلمات",                artist: "ماجدة الرومي",              url: track8_url,  cover: cover8_img  },
-  { title: "بكلمة منك",            artist: "شرين عبد الوهاب",         url: track20_url, cover: cover2_img  },
+  { title: "بكلمة منك",            artist: "شرين عبد الوهاب",          url: track20_url, cover: cover2_img  },
   { title: "خليني ذكرى",           artist: "وائل جسار",                 url: track9_url,  cover: cover9_img  },
   { title: "لو كان بخاطري",        artist: "امال ماهر | راشد الماجد",  url: track10_url, cover: cover10_img },
   { title: "خذني معك",             artist: "فضل شاكر",                  url: track11_url, cover: cover11_img },
   { title: "موجوع",                artist: "وائل جسار",                 url: track12_url, cover: cover12_img },
   { title: "معقول",                artist: "فضل شاكر",                  url: track14_url, cover: cover14_img },
-  { title: "على بالي",             artist: "شرين عبد الوهاب",         url: track15_url, cover: cover15_img },
+  { title: "على بالي",             artist: "شرين عبد الوهاب",          url: track15_url, cover: cover15_img },
   { title: "حبيبي بالبونت العريض", artist: "حسين الجسمي",               url: track17_url, cover: cover4_img  },
   { title: "بتمون",                artist: "أليسا",                     url: track19_url, cover: cover6_img  },
 ];
 
+const LAYOUT_DESKTOP = {
+  disc:    { cx: 210, cy: 86, r: 58 },
+  armPivot:{ x: 332, y: 50 },
+  armLen:  78
+};
+const LAYOUT_MOBILE = {
+  disc:    { cx: 210, cy: 70, r: 46 },
+  armPivot:{ x: 304, y: 48 },
+  armLen:  72
+};
+
+const useIsMobile = () => {
+  const [m, setM] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= 768 : false));
+  useEffect(() => {
+    const onR = () => setM(window.innerWidth <= 768);
+    window.addEventListener("resize", onR);
+    return () => window.removeEventListener("resize", onR);
+  }, []);
+  return m;
+};
+
+/* ---------- Silver radio-style knob (mobile only) ---------- */
+function MobileVolumeKnob({ volume, onChange, size }) {
+  const [angle, setAngle] = useState(() => Math.round(volume * 270));
+  const knobRef = useRef(null);
+  const wrapRef = useRef(null);
+
+  useEffect(() => setAngle(Math.round(volume * 270)), [volume]);
+
+  const setFromClient = (clientX, clientY) => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let deg = Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
+    deg = Math.max(-135, Math.min(135, deg));
+    const a = deg + 135;
+    setAngle(a);
+    onChange(Math.max(0, Math.min(1, a / 270)));
+  };
+
+  const onPointerDown = (e) => {
+    e.preventDefault();
+    const id = e.pointerId ?? 0;
+    knobRef.current?.setPointerCapture?.(id);
+    const move = (ev) => setFromClient(ev.clientX, ev.clientY);
+    const up = () => {
+      knobRef.current?.releasePointerCapture?.(id);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up, { once: true });
+    setFromClient(e.clientX, e.clientY);
+  };
+
+  const ticks = 28;
+  const activeTicks = Math.round(angle / 10) + 1;
+
+  return (
+    <div
+      className="knob-surround"
+      ref={wrapRef}
+      style={{ width: size, height: size }}
+    >
+      <div
+        className="knob"
+        ref={knobRef}
+        style={{ transform: `rotate(${angle}deg)` }}
+        onPointerDown={onPointerDown}
+      />
+      <span className="min">Min</span>
+      <span className="max">Max</span>
+      <div className="ticks">
+        {Array.from({ length: ticks }).map((_, i) => (
+          <div
+            key={i}
+            className={`tick ${i < activeTicks ? "activetick" : ""}`}
+            style={{ transform: `rotate(${-135 + i * 10}deg)` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AudioStereoPlayer({ onAnalyserReady }) {
+  const isMobile = useIsMobile();
+  const layout = isMobile ? LAYOUT_MOBILE : LAYOUT_DESKTOP;
+
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const swiperRef = useRef(null);
@@ -75,27 +165,38 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.85); // 0..1
+  const [volume, setVolume] = useState(0.85);
   const [error, setError] = useState(null);
-  const [mobileOpen, setMobileOpen] = useState(false); // hamburger drawer
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const currentTrack = useMemo(() => TRACKS[currentIndex], [currentIndex]);
 
-  // WebAudio graph
+  // Audio graph
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
-  const gainRef = useRef(null); // iOS volume
+  const gainRef = useRef(null);
 
   // Visualizer
   const animRef = useRef(null);
   const ctxRef = useRef(null);
   const gradientRef = useRef(null);
 
-  // Autoplay flag for next src
+  // SVG / vinyl
+  const svgRef = useRef(null);
+  const platterRef = useRef(null);
+  const armRef = useRef(null);
+  const isPlayingRef = useRef(false);
+  const discAngleRef = useRef(0);
+
+  // Disc drag to seek
+  const discDragMovedRef = useRef(false);
+  const discPrevAngleRef = useRef(0);
+  const discAccumDegRef = useRef(0);
+
+  // Autoplay
   const pendingAutoplayRef = useRef(false);
 
-  // Stop OrbitControls stealing events
   const stopOrbit = (e) => { e.stopPropagation(); };
   const uiStopperProps = {
     onPointerDown: stopOrbit,
@@ -119,7 +220,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     gradientRef.current = grad;
   };
 
-  const startVisualizer = () => {
+  const startVisualizer = useCallback(() => {
     cancelAnimationFrame(animRef.current);
     const canvas = canvasRef.current;
     const ctx = ctxRef.current;
@@ -132,6 +233,14 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     let t = 0;
 
     const animate = () => {
+      if (isPlayingRef.current && platterRef.current) {
+        discAngleRef.current = (discAngleRef.current + 0.9) % 360;
+        platterRef.current.setAttribute(
+          "transform",
+          `rotate(${discAngleRef.current} ${layout.disc.cx} ${layout.disc.cy})`
+        );
+      }
+
       const data = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(data);
 
@@ -169,12 +278,11 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         ctx.lineTo(canvas.width, py);
         ctx.stroke();
       }
-
       animRef.current = requestAnimationFrame(animate);
     };
 
     animRef.current = requestAnimationFrame(animate);
-  };
+  }, [layout.disc.cx, layout.disc.cy]);
 
   /* ===== Build audio graph once ===== */
   useEffect(() => {
@@ -200,7 +308,6 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
           analyserRef.current = analyser;
         }
 
-        // Connect graph (guard against duplicate connections)
         try { sourceRef.current.disconnect(); } catch {}
         try { gainRef.current.disconnect(); } catch {}
         try { analyserRef.current.disconnect(); } catch {}
@@ -221,6 +328,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     const onErr = () => setError("Audio source not supported or not found.");
     const onEnded = () => {
       pendingAutoplayRef.current = true;
+      setIsPlaying(false);
       setCurrentIndex((i) => (i + 1) % TRACKS.length);
     };
 
@@ -234,7 +342,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ===== Change track: swap src + autoplay (mobile-safe) ===== */
+  /* ===== Change track ===== */
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -293,12 +401,12 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
       el.removeEventListener("canplay", onCanPlay);
       el.removeEventListener("canplaythrough", onCanPlayThrough);
     };
-  }, [currentIndex, currentTrack]);
+  }, [currentIndex, currentTrack, startVisualizer]);
 
-  /* ===== Volume (iOS-friendly via GainNode) ===== */
+  /* ===== Volume ===== */
   useEffect(() => {
     const el = audioRef.current;
-    if (el) el.volume = volume; // ignored on iOS; fine elsewhere
+    if (el) el.volume = volume;
     if (gainRef.current) {
       const now = audioCtxRef.current?.currentTime ?? 0;
       try {
@@ -311,7 +419,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     }
   }, [volume]);
 
-  /* Keep active playlist item visible on desktop panel */
+  /* Keep active playlist item visible */
   useEffect(() => {
     if (playlistRef.current) {
       const active = playlistRef.current.querySelector(".active-playlist-item");
@@ -342,6 +450,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
       el.pause(); setIsPlaying(false);
     }
   };
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   const playIndex = (i) => {
     pendingAutoplayRef.current = true;
@@ -353,12 +462,71 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
   const seek = (sec) => {
     const el = audioRef.current;
     if (!el) return;
-    el.currentTime = Math.max(0, el.currentTime + sec);
+    const dur = el.duration || Infinity;
+    el.currentTime = Math.max(0, Math.min(dur, el.currentTime + sec));
+  };
+
+  /* Tonearm easing */
+  const armPlayDeg = useMemo(() => {
+    const a = Math.atan2(layout.disc.cy - layout.armPivot.y, layout.disc.cx - layout.armPivot.x) * 180 / Math.PI;
+    return a + 6;
+  }, [layout.disc.cx, layout.disc.cy, layout.armPivot.x, layout.armPivot.y]);
+
+  useEffect(() => {
+    const angle = isPlaying ? armPlayDeg : 90; // 90° rest
+    if (armRef.current) {
+      armRef.current.style.transformBox = "view-box";
+      armRef.current.style.transformOrigin = `${layout.armPivot.x}px ${layout.armPivot.y}px`;
+      armRef.current.style.transition = "transform 380ms ease";
+      armRef.current.style.transform = `rotate(${angle}deg)`;
+    }
+  }, [isPlaying, armPlayDeg, layout.armPivot.x, layout.armPivot.y]);
+
+  /* Disc: drag to seek, click to toggle */
+  const angleAt = (clientX, clientY) => {
+    const svg = svgRef.current;
+    if (!svg) return 0;
+    const pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    const { x, y } = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return Math.atan2(y - layout.disc.cy, x - layout.disc.cx) * 180 / Math.PI;
+    };
+  const normalizeDeg = (d) => {
+    let dd = d;
+    while (dd > 180) dd -= 360;
+    while (dd < -180) dd += 360;
+    return dd;
+  };
+  const onDiscPointerDown = (e) => {
+    const group = e.currentTarget;
+    const id = e.pointerId ?? 0;
+    group.setPointerCapture?.(id);
+    discDragMovedRef.current = false;
+    discPrevAngleRef.current = angleAt(e.clientX, e.clientY);
+    discAccumDegRef.current = 0;
+
+    const move = (ev) => {
+      const cur = angleAt(ev.clientX, ev.clientY);
+      const delta = normalizeDeg(cur - discPrevAngleRef.current);
+      if (Math.abs(delta) > 1) discDragMovedRef.current = true;
+      discPrevAngleRef.current = cur;
+      discAccumDegRef.current += delta;
+      const THRESH = 18;
+      while (discAccumDegRef.current >= THRESH) { seek(+10); discAccumDegRef.current -= THRESH; }
+      while (discAccumDegRef.current <= -THRESH){ seek(-10); discAccumDegRef.current += THRESH; }
+    };
+    const up = () => {
+      group.releasePointerCapture?.(id);
+      group.removeEventListener("pointermove", move);
+      group.removeEventListener("pointerup", up);
+      if (!discDragMovedRef.current) handlePlayPause();
+    };
+    group.addEventListener("pointermove", move);
+    group.addEventListener("pointerup", up, { once: true });
   };
 
   return (
     <>
-      {/* Mini player */}
       <div className="audio-player-square stereo" {...uiStopperProps} style={{ touchAction: "manipulation" }}>
         <div className="ap-header">
           <div className="ap-title">
@@ -372,18 +540,92 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
           {error && <div className="ap-error">{error}</div>}
         </div>
 
-        <canvas ref={canvasRef} width={360} height={140} className="ap-canvas" />
+        {/* Visualizer on top */}
+        <canvas ref={canvasRef} width={360} height={86} className="ap-canvas" />
 
-        <div className="ap-controls-row">
-          <button className="ap-btn" title="Prev" onClick={handlePrev}>⏮</button>
-          <button className="ap-btn big" onClick={handlePlayPause} title={isPlaying ? "Pause" : "Play"}>
-            {isPlaying ? "⏸" : "▶"}
-          </button>
-          <button className="ap-btn" title="Next" onClick={handleNext}>⏭</button>
+        {/* Turntable + (mobile) knob */}
+        <div className="tt-wrap">
+          <div className="tt-flex">
+            {isMobile && (
+              <div className="tt-knob-col">
+                <MobileVolumeKnob
+                  volume={volume}
+                  onChange={setVolume}
+                  /* slightly smaller on mobile so it never clips */
+                  size={Math.min(layout.disc.r * 2 - 6, 92)}
+                />
+              </div>
+            )}
+
+            <svg
+              ref={svgRef}
+              className="turntable-svg"
+              viewBox="0 0 420 150"
+              width="100%"
+              height="100%"
+            >
+              <defs>
+                <radialGradient id="discShine" cx="35%" cy="30%" r="70%">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.10" />
+                  <stop offset="100%" stopColor="#000000" stopOpacity="0.08" />
+                </radialGradient>
+                <linearGradient id="armMetal" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#e3e3e3" />
+                  <stop offset="100%" stopColor="#9a9a9a" />
+                </linearGradient>
+                <clipPath id="discLabelClip">
+                  <circle cx={layout.disc.cx} cy={layout.disc.cy} r="22" />
+                </clipPath>
+              </defs>
+
+              {/* DISC */}
+              <g ref={platterRef} onPointerDown={onDiscPointerDown} style={{ cursor: "grab" }}>
+                <circle cx={layout.disc.cx} cy={layout.disc.cy} r={layout.disc.r + 3} fill="url(#discShine)" />
+                <circle cx={layout.disc.cx} cy={layout.disc.cy} r={layout.disc.r} fill="#0f0f11" />
+                {Array.from({ length: 26 }).map((_, i) => (
+                  <circle key={i}
+                          cx={layout.disc.cx} cy={layout.disc.cy}
+                          r={layout.disc.r - 14 + i}
+                          fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={i % 2 ? 0.8 : 0.5} />
+                ))}
+                <circle cx={layout.disc.cx} cy={layout.disc.cy} r="24" fill="#101010" stroke="#e75aa2" strokeWidth="2" opacity="0.55" />
+                <image
+                  href={currentTrack.cover}
+                  x={layout.disc.cx - 22} y={layout.disc.cy - 22}
+                  width="44" height="44"
+                  clipPath="url(#discLabelClip)"
+                  preserveAspectRatio="xMidYMid slice"
+                />
+                <circle cx={layout.disc.cx} cy={layout.disc.cy} r="5.5" fill="#f7f7f7" stroke="#bbb" strokeWidth="1" />
+              </g>
+
+              {/* Transparent Prev / Next under disc */}
+              <g transform={`translate(${layout.disc.cx - 60}, ${layout.disc.cy + layout.disc.r + 12})`}>
+                <g className="tt-ghost-btn" onClick={handlePrev} style={{ cursor: "pointer" }}>
+                  <circle cx="0" cy="0" r="13" fill="transparent" stroke="rgba(255,255,255,0.66)" strokeWidth="1.5"/>
+                  <text x="0" y="4" fontSize="12" textAnchor="middle" fill="#e9eefc">⏮</text>
+                </g>
+                <g className="tt-ghost-btn" onClick={handleNext} transform="translate(120,0)" style={{ cursor: "pointer" }}>
+                  <circle cx="0" cy="0" r="13" fill="transparent" stroke="rgba(255,255,255,0.66)" strokeWidth="1.5"/>
+                  <text x="0" y="4" fontSize="12" textAnchor="middle" fill="#e9eefc">⏭</text>
+                </g>
+              </g>
+
+              {/* TONEARM */}
+              <g ref={armRef}>
+                <circle cx={layout.armPivot.x} cy={layout.armPivot.y} r="9.5" fill="#bdbdbd" stroke="#8c8c8c" />
+                <rect x={layout.armPivot.x} y={layout.armPivot.y - 1.8} width={layout.armLen} height="3.6" rx="1.8" fill="url(#armMetal)" />
+                <rect x={layout.armPivot.x + layout.armLen - 2} y={layout.armPivot.y - 5} width="14" height="10" rx="2" fill="#d4d4d4" stroke="#8f8f8f" />
+                <rect x={layout.armPivot.x + layout.armLen + 9} y={layout.armPivot.y - 0.8} width="7" height="1.6" rx="0.8" fill="#d33" />
+              </g>
+            </svg>
+          </div>
         </div>
 
+        {/* Seek row */}
         <div className="ap-seek-row">
           <button className="ap-btn small" onClick={() => seek(-10)} title="Rewind 10s">−10s</button>
+
           <input
             className="ap-volume"
             type="range"
@@ -395,13 +637,14 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
             style={{ "--vol": volume }}
             title="Volume"
           />
+
           <button className="ap-btn small" onClick={() => seek(10)} title="Forward 10s">+10s</button>
         </div>
 
         <audio ref={audioRef} preload="auto" playsInline />
       </div>
 
-      {/* Cards — desktop/tablet (hidden on mobile via CSS) */}
+      {/* Cards — desktop/tablet (hidden on mobile) */}
       <section className="cards-below-selector left" {...uiStopperProps} style={{ touchAction: "pan-y" }}>
         <div className="cards-wrap">
           <Swiper
@@ -431,11 +674,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
       </section>
 
       {/* Desktop glass playlist (hidden on mobile) */}
-      <aside
-        className="playlist-right"
-        {...uiStopperProps}
-        style={{ zIndex: 1005, touchAction: "pan-y" }}
-      >
+      <aside className="playlist-right" {...uiStopperProps} style={{ zIndex: 1005, touchAction: "pan-y" }}>
         <div className="playlist-scroller" ref={playlistRef} {...uiStopperProps}>
           {TRACKS.map((t, idx) => (
             <div
@@ -453,7 +692,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         </div>
       </aside>
 
-      {/* MOBILE: top-right hamburger + horizontal glass drawer */}
+      {/* Mobile playlist drawer */}
       <button
         className="mobile-pl-btn"
         aria-label="Open playlist"
@@ -478,7 +717,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
             <button
               key={idx}
               className={`mobile-track-card ${idx === currentIndex ? "active" : ""}`}
-              onClick={() => { playIndex(idx); setMobileOpen(false); }}  // auto-close on pick
+              onClick={() => { playIndex(idx); setMobileOpen(false); }}
               title={`${t.artist} — ${t.title}`}
             >
               <img src={t.cover} alt={t.title} />
@@ -491,3 +730,4 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     </>
   );
 }
+
