@@ -94,6 +94,7 @@
   transition: transform .15s ease, background .2s ease;
 }
 .ap-btn.small{ font-size:.9rem; padding:6px 10px; }
+.ap-btn.xsmall{ font-size:.8rem; padding:4px 8px; line-height:1; }
 .ap-btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.18); }
 
 /* Desktop horizontal volume */
@@ -125,50 +126,69 @@
   height:8px; border-radius:999px;
 }
 
-/* ===================== MOBILE KNOB (silver) ===================== */
-.knob-surround{
-  position: relative;
-  border-radius: 50%;
-  background: radial-gradient(120% 85% at 20% 20%, #f0f0f0 0%, #c5c9cf 40%, #9aa0a9 70%, #7e838b 100%);
-  border: 3px solid #6f7680;
-  box-shadow:
-    inset 0 5px 6px rgba(255,255,255,0.28),
-    inset 0 -6px 10px rgba(0,0,0,0.35),
-    0 4px 10px rgba(0,0,0,0.25);
-}
-.knob{ position:absolute; inset:0; border-radius:50%; transform: rotate(0deg); }
-.knob:before{
-  content:"";
-  position:absolute;
-  width:8%; height:8%; border-radius:50%;
-  left:20%; bottom:20%;
-  background:#cfe8ff;
-  box-shadow:0 0 6px #7ec0e9;
-}
-.knob-surround .min,
-.knob-surround .max{
-  position:absolute; bottom:-14px; font-size:10px; letter-spacing:.2px;
-  color:#eef3ff; text-shadow:0 1px 2px rgba(0,0,0,0.65);
-  user-select:none;
-}
-.knob-surround .min{ left:-6px; }
-.knob-surround .max{ right:-6px; }
+/* ===================== (OLD KNOB STYLES — NOT USED) ===================== */
+/* kept commented for reference
+.knob-surround{ ... }
+*/
 
-.ticks{ position:absolute; inset:0; }
-.tick{ position:absolute; inset:0; }
-.tick:after{
-  content:"";
-  position:absolute;
-  left:50%;
-  top:-8%;
-  width:2px; height:12%;
-  background: rgba(255,255,255,0.25);
-  transform: translateX(-50%);
-  transition: all 160ms ease;
+/* ===================== MOBILE MINI VOLUME + QUICK SEEK ===================== */
+/* Container column (left side of the turntable) */
+.mobile-mini{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+
+  /* NEW: make the whole widget wider and give it its own width so
+     the buttons align perfectly under the slider */
+  width: clamp(150px, 44vw, 240px);
 }
-.tick.activetick:after{
-  background:#a8d8f8;
-  box-shadow:0 0 6px #7ec0e9;
+
+/* Slider itself */
+.mobile-mini-volume{
+  --accent: var(--accent-blue);
+  --bg: rgba(255,255,255,0.35);
+  --vol: 0.85;
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+
+  /* NEW: take the full width of the widget for more presence */
+  width: 100%;
+  height:6px; border-radius:999px; outline:none;
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0/ calc(var(--vol)*100%) 100% no-repeat,
+    var(--bg);
+  border:1px solid rgba(255,255,255,0.25);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.25);
+}
+.mobile-mini-volume::-webkit-slider-thumb{
+  -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+  background:#fff; border:1px solid rgba(0,0,0,0.15);
+  box-shadow:0 2px 6px rgba(0,0,0,0.2);
+}
+.mobile-mini-volume::-moz-range-thumb{
+  width:14px; height:14px; border-radius:50%;
+  background:#fff; border:1px solid rgba(0,0,0,0.15);
+  box-shadow:0 2px 6px rgba(0,0,0,0.2);
+}
+.mobile-mini-volume::-moz-range-track{ background: transparent; }
+.mobile-mini-volume::-moz-range-progress{
+  background: var(--accent);
+  height:6px; border-radius:999px;
+}
+
+/* Buttons row under the slider */
+.mobile-mini-seek{
+  display:flex;
+  align-items:center;
+  justify-content:space-between; /* NEW: align to the widget’s width */
+  gap:8px;
+  width: 100%;                  /* NEW: match slider width */
+}
+/* NEW: make both buttons equal width and perfectly aligned */
+.mobile-mini-seek .ap-btn.xsmall{
+  flex:1 1 0;
+  min-width: 0;                 /* allow equal distribution */
+  text-align:center;
 }
 
 /* ===================== CARDS BELOW SELECTOR ===================== */
@@ -282,13 +302,15 @@
   .ap-canvas{ height:74px; margin-bottom:6px; }
 
   .tt-wrap, .turntable-svg{ height:108px; }
-  .tt-wrap{ padding: 0 14px; }              /* ensures the knob never clips on left */
+  .tt-wrap{ padding: 0 14px; } /* ensures the left column never clips */
   .tt-flex{ gap: 12px; justify-content:center; align-items:center; }
-  .tt-knob-col{ margin-left: 10px; }        /* a little space from the left wall */
+
+  /* NEW: push the left widget further to the right and give extra left margin */
+  .tt-knob-col{ margin-left: 26px; }
 
   /* hide desktop slider on mobile */
   .ap-volume{ display:none; }
-  .ap-seek-row{ margin-top: 8px; }          /* slightly tighter on mobile */
+  .ap-seek-row{ margin-top: 8px; } /* slightly tighter on mobile */
 
   .cards-below-selector,
   .playlist-right { display: none !important; }

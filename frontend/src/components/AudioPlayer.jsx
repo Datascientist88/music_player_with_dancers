@@ -88,67 +88,24 @@ const useIsMobile = () => {
   return m;
 };
 
-/* ---------- Silver radio-style knob (mobile only) ---------- */
-function MobileVolumeKnob({ volume, onChange, size }) {
-  const [angle, setAngle] = useState(() => Math.round(volume * 270));
-  const knobRef = useRef(null);
-  const wrapRef = useRef(null);
-
-  useEffect(() => setAngle(Math.round(volume * 270)), [volume]);
-
-  const setFromClient = (clientX, clientY) => {
-    const wrap = wrapRef.current;
-    if (!wrap) return;
-    const rect = wrap.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    let deg = Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
-    deg = Math.max(-135, Math.min(135, deg));
-    const a = deg + 135;
-    setAngle(a);
-    onChange(Math.max(0, Math.min(1, a / 270)));
-  };
-
-  const onPointerDown = (e) => {
-    e.preventDefault();
-    const id = e.pointerId ?? 0;
-    knobRef.current?.setPointerCapture?.(id);
-    const move = (ev) => setFromClient(ev.clientX, ev.clientY);
-    const up = () => {
-      knobRef.current?.releasePointerCapture?.(id);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up, { once: true });
-    setFromClient(e.clientX, e.clientY);
-  };
-
-  const ticks = 28;
-  const activeTicks = Math.round(angle / 10) + 1;
-
+/* ---------- Mobile mini volume + quick seek (replaces old knob) ---------- */
+function MobileMiniVolume({ volume, onChange, onSeek }) {
   return (
-    <div
-      className="knob-surround"
-      ref={wrapRef}
-      style={{ width: size, height: size }}
-    >
-      <div
-        className="knob"
-        ref={knobRef}
-        style={{ transform: `rotate(${angle}deg)` }}
-        onPointerDown={onPointerDown}
+    <div className="mobile-mini">
+      <input
+        className="mobile-mini-volume"
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={volume}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{ "--vol": volume }}
+        aria-label="Volume"
       />
-      <span className="min">Min</span>
-      <span className="max">Max</span>
-      <div className="ticks">
-        {Array.from({ length: ticks }).map((_, i) => (
-          <div
-            key={i}
-            className={`tick ${i < activeTicks ? "activetick" : ""}`}
-            style={{ transform: `rotate(${-135 + i * 10}deg)` }}
-          />
-        ))}
+      <div className="mobile-mini-seek">
+        <button className="ap-btn xsmall" onClick={() => onSeek(-10)} aria-label="Rewind 10 seconds">−10</button>
+        <button className="ap-btn xsmall" onClick={() => onSeek(10)} aria-label="Forward 10 seconds">+10</button>
       </div>
     </div>
   );
@@ -490,7 +447,7 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     pt.x = clientX; pt.y = clientY;
     const { x, y } = pt.matrixTransform(svg.getScreenCTM().inverse());
     return Math.atan2(y - layout.disc.cy, x - layout.disc.cx) * 180 / Math.PI;
-    };
+  };
   const normalizeDeg = (d) => {
     let dd = d;
     while (dd > 180) dd -= 360;
@@ -543,16 +500,15 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
         {/* Visualizer on top */}
         <canvas ref={canvasRef} width={360} height={86} className="ap-canvas" />
 
-        {/* Turntable + (mobile) knob */}
+        {/* Turntable + (mobile) mini slider/seek column */}
         <div className="tt-wrap">
           <div className="tt-flex">
             {isMobile && (
               <div className="tt-knob-col">
-                <MobileVolumeKnob
+                <MobileMiniVolume
                   volume={volume}
                   onChange={setVolume}
-                  /* slightly smaller on mobile so it never clips */
-                  size={Math.min(layout.disc.r * 2 - 6, 92)}
+                  onSeek={seek}
                 />
               </div>
             )}
@@ -730,4 +686,3 @@ export default function AudioStereoPlayer({ onAnalyserReady }) {
     </>
   );
 }
-
