@@ -93,7 +93,7 @@
   box-shadow:0 6px 18px rgba(0,0,0,0.22);
   transition: transform .15s ease, background .2s ease;
 }
-.ap-btn.small{ font-size:.9rem; padding:6px 10px; }
+.ap-btn.small{ font-size:.9rem; padding:10px 10px; margin-left: 12px;}
 .ap-btn.xsmall{ font-size:.8rem; padding:4px 8px; line-height:1; }
 .ap-btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.18); }
 
@@ -141,7 +141,7 @@
 
   /* NEW: make the whole widget wider and give it its own width so
      the buttons align perfectly under the slider */
-  width: clamp(150px, 44vw, 240px);
+  width: clamp(150px, 44vw, 340px);
 }
 
 /* Slider itself */
@@ -181,14 +181,15 @@
   display:flex;
   align-items:center;
   justify-content:space-between; /* NEW: align to the widget’s width */
-  gap:8px;
-  width: 100%;                  /* NEW: match slider width */
+  gap:10px;
+  width: 100%; 
+  margin-left: 2%;
+                   /* NEW: match slider width */
 }
 /* NEW: make both buttons equal width and perfectly aligned */
 .mobile-mini-seek .ap-btn.xsmall{
-  flex:1 1 0;
-  min-width: 0;                 /* allow equal distribution */
-  text-align:center;
+ display: none;
+  
 }
 
 /* ===================== CARDS BELOW SELECTOR ===================== */
@@ -309,14 +310,16 @@
   .tt-knob-col{ margin-left: 26px; }
 
   /* hide desktop slider on mobile */
-  .ap-volume{ display:none; }
-  .ap-seek-row{ margin-top: 8px; } /* slightly tighter on mobile */
+
+  .ap-seek-row{ margin-top: 12px; } /* slightly tighter on mobile */
 
   .cards-below-selector,
   .playlist-right { display: none !important; }
 
   .mobile-pl-btn,
   .mobile-pl-drawer { display: block; }
+
+
 }
 
 @media (max-width: 420px){
