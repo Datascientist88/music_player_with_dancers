@@ -27,6 +27,7 @@ import track17_url from "../assets/music/track17.mp3";
 import track18_url  from "../assets/music/track18.mp3";
 import track19_url  from "../assets/music/track19.mp3";
 import track20_url  from "../assets/music/track20.mp3";
+import track21_url  from "../assets/music/track21.mp3";
 
 import cover1_img  from "../assets/images/cover1.jpg";
 import cover2_img  from "../assets/images/cover2.jpg";
@@ -44,6 +45,7 @@ import cover13_img from "../assets/images/cover13.jpg";
 import cover14_img from "../assets/images/cover14.jpg";
 import cover15_img from "../assets/images/cover15.jpg";
 import cover18_img from "../assets/images/cover18.jpg";
+import cover19_img from "../assets/images/cover19.jpg";
 
 const TRACKS = [
   { title: "كتير بنعشق",          artist: "شرين عبد الوهاب",         url: track1_url,  cover: cover1_img  },
@@ -65,6 +67,7 @@ const TRACKS = [
   { title: "على بالي",             artist: "شرين عبد الوهاب",          url: track15_url, cover: cover15_img },
   { title: "حبيبي بالبونت العريض", artist: "حسين الجسمي",               url: track17_url, cover: cover4_img  },
   { title: "بتمون",                artist: "أليسا",                     url: track19_url, cover: cover6_img  },
+  { title: "الوتر الحساس",          artist: "شيرين",                     url: track21_url, cover: cover19_img  },
 ];
 
 const LAYOUT_DESKTOP = {
